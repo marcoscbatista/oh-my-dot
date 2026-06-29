@@ -87,16 +87,23 @@ func main() {
 		}
 
 	case "switch":
-		if len(args) < 2 {
+		switchFlags := flag.NewFlagSet("switch", flag.ExitOnError)
+
+		force := switchFlags.Bool("force", false, "Replace current ~/.config even if it is not managed by oh-my-dot")
+		forceShort := switchFlags.Bool("f", false, "Replace current ~/.config even if it is not managed by oh-my-dot")
+
+		switchFlags.Parse(args[1:])
+
+		if switchFlags.NArg() < 1 {
 			log.Errorf("Error: You need to send the dotfiles name you want to activate.")
 			os.Exit(1)
 		}
 
-		name := args[1]
+		name := switchFlags.Arg(0)
 
 		log.Verbosef("Switching to dotfiles %q", name)
 
-		if err := handler.Switch(name); err != nil {
+		if err := handler.Switch(name, *force || *forceShort); err != nil {
 			log.Errorf("Error: %s", err)
 			os.Exit(1)
 		}
@@ -132,9 +139,5 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, `Commands:
   list                          List all dotfiles
   switch <name>                 Switch the active dotfiles
-  create <name> <remote-url>    Add your dotfiles
-
-Warning:
-  If your current .config is not managed by oh-my-dot, it will be replaced.
-  A backup will be created in ~/oh-my-dot.`)
+  create <name> <remote-url>    Add your dotfiles`)
 }

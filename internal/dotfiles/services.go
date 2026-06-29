@@ -132,6 +132,47 @@ func (d *DotFilesService) Switch(name string, configPath string, backupDir strin
 	return nil
 }
 
+func (d *DotFilesService) CanReplaceConfig(configPath string, dotfilesDir string) (bool, error) {
+	info, err := os.Lstat(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return true, nil
+		}
+
+		return false, err
+	}
+
+	if info.Mode()&os.ModeSymlink == 0 {
+		return false, nil
+	}
+
+	target, err := os.Readlink(configPath)
+	if err != nil {
+		return false, err
+	}
+
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(configPath), target)
+	}
+
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return false, err
+	}
+
+	absDotfilesDir, err := filepath.Abs(dotfilesDir)
+	if err != nil {
+		return false, err
+	}
+
+	rel, err := filepath.Rel(absDotfilesDir, absTarget)
+	if err != nil {
+		return false, err
+	}
+
+	return rel != ".." && !strings.HasPrefix(rel, "../"), nil
+}
+
 func uniqueBackupPath(base string) (string, error) {
 	for i := 0; ; i++ {
 		candidate := base
