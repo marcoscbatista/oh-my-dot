@@ -14,13 +14,16 @@ type DotFilesHandler struct {
 	ConfigPath  string
 }
 
-func (d *DotFilesHandler) download(dot DotFile) error {
+func (d *DotFilesHandler) download(dot DotFile, verbose bool) error {
 	cmd := exec.Command("git", "clone", dot.RemoteAddress, dot.LocalPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if verbose {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("could not clone repository: %w", err)
+		return err
 	}
 
 	return nil
@@ -35,7 +38,7 @@ func (d *DotFilesHandler) GetAll() ([]DotFile, error) {
 	return dots, nil
 }
 
-func (d *DotFilesHandler) Create(name string, remoteAddr string) error {
+func (d *DotFilesHandler) Create(name string, remoteAddr string, verbose bool) error {
 	name = strings.TrimSpace(name)
 	remoteAddr = strings.TrimSpace(remoteAddr)
 
@@ -54,7 +57,7 @@ func (d *DotFilesHandler) Create(name string, remoteAddr string) error {
 		return fmt.Errorf("could not create dotfile: %w", err)
 	}
 
-	if err := d.download(*dot); err != nil {
+	if err := d.download(*dot, verbose); err != nil {
 		return fmt.Errorf("could not download dotfiles: %w", err)
 	}
 
