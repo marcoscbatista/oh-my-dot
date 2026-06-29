@@ -70,7 +70,20 @@ func (d *DotFilesHandler) Create(name string, remoteAddr string, verbose bool) e
 	return nil
 }
 
-func (d *DotFilesHandler) Switch(name string) error {
+func (d *DotFilesHandler) Switch(name string, force bool) error {
+	isManaged, err := d.Service.CanReplaceConfig(d.ConfigPath, d.DotfilesDir)
+	if err != nil {
+		return err
+	}
+
+	if !isManaged && !force {
+		return fmt.Errorf(
+			"%s is not managed by oh-my-dot and would be replaced.\n A backup would be created in %s.\n Run again with --force to continue",
+			d.ConfigPath,
+			d.DotfilesDir,
+		)
+	}
+
 	name = strings.TrimSpace(name)
 
 	if name == "" {
