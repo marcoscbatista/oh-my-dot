@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -46,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	store, err := dotfiles.NewDotFileStore("oh-my-dot/db.json")
+	store, err := dotfiles.NewDotFileStore(dotfiles.DefaultStorePath())
 	if err != nil {
 		log.Errorf("Failed to initialize dotfiles store: %s", err)
 		os.Exit(1)
@@ -58,8 +57,8 @@ func main() {
 
 	handler := dotfiles.DotFilesHandler{
 		Service:     &service,
-		DotfilesDir: filepath.Join(home, "oh-my-dot"),
-		ConfigPath:  filepath.Join(home, ".fake-config"),
+		DotfilesDir: dotfiles.DefaultDotfilesDir(home),
+		ConfigPath:  dotfiles.DefaultConfigPath(home),
 	}
 
 	a := app.New()
@@ -387,7 +386,15 @@ func main() {
 
 				statusLabel.SetText(fmt.Sprintf("Activating %s...", activatedName))
 
-				err := service.Switch(activatedID, handler.ConfigPath, handler.DotfilesDir)
+				isManaged, err := service.CanReplaceConfig(handler.ConfigPath, handler.DotfilesDir)
+				if err != nil {
+					log.Errorf("Failed to inspect current config state: %s", err)
+					statusLabel.SetText("Activation failed")
+					dialog.ShowError(err, w)
+					return
+				}
+
+				err = handler.Switch(activatedID, !isManaged)
 				if err != nil {
 					log.Errorf("Failed to activate package %q (id=%d): %s", activatedName, activatedID, err)
 					statusLabel.SetText("Activation failed")

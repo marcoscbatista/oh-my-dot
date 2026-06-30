@@ -1,10 +1,10 @@
 package dotfiles
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -40,24 +40,44 @@ func (d *DotFilesHandler) GetAll() ([]DotFile, error) {
 }
 
 func (d *DotFilesHandler) Create(name string, remoteAddr string, verbose bool) error {
-	name = strings.TrimSpace(name)
-	remoteAddr = strings.TrimSpace(remoteAddr)
+	var err error
 
-	if name == "" {
-		return fmt.Errorf("name cannot be empty")
+	name, err = normalizePackageName(name)
+	if err != nil {
+		return err
 	}
+
+	remoteAddr = strings.TrimSpace(remoteAddr)
 
 	if remoteAddr == "" {
 		return fmt.Errorf("remote address cannot be empty")
 	}
 
-	pathPackage := filepath.Join(d.DotfilesDir, name)
+	pathPackage, err := resolvePackagePath(d.DotfilesDir, name)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(d.DotfilesDir, 0755); err != nil {
+		return fmt.Errorf("could not prepare dotfiles directory: %w", err)
+	}
+
+	if err := d.Service.ValidateCreate(name, remoteAddr, pathPackage); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(pathPackage); err == nil {
+		return fmt.Errorf("package destination already exists: %s", pathPackage)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("could not check package destination: %w", err)
+	}
 
 	if err := d.download(remoteAddr, pathPackage, verbose); err != nil {
 		return fmt.Errorf("could not download dotfiles: %w", err)
 	}
 
 	if err := d.Service.Create(name, remoteAddr, pathPackage); err != nil {
+		_ = os.RemoveAll(pathPackage)
 		return fmt.Errorf("could not save dotfile: %w", err)
 	}
 

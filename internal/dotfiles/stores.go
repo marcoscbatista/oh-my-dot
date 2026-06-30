@@ -66,12 +66,23 @@ func (d *DotFileStore) Add(dotfile DotFile) error {
 		return err
 	}
 
+	nextID := 1
+
 	for _, existing := range dotfiles {
 		if existing.Name == dotfile.Name {
 			return fmt.Errorf("dotfile %q already exists", dotfile.Name)
 		}
+
+		if existing.LocalPath == dotfile.LocalPath {
+			return fmt.Errorf("dotfile path %q already exists", dotfile.LocalPath)
+		}
+
+		if existing.ID >= nextID {
+			nextID = existing.ID + 1
+		}
 	}
-	dotfile.ID = len(dotfiles) + 1
+
+	dotfile.ID = nextID
 
 	dotfiles = append(dotfiles, dotfile)
 
