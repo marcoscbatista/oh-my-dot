@@ -71,6 +71,7 @@ func (d *DotFileStore) Add(dotfile DotFile) error {
 			return fmt.Errorf("dotfile %q already exists", dotfile.Name)
 		}
 	}
+	dotfile.ID = len(dotfiles) + 1
 
 	dotfiles = append(dotfiles, dotfile)
 

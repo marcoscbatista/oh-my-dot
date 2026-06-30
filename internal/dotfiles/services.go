@@ -21,17 +21,19 @@ func (d *DotFilesService) GetAll() ([]DotFile, error) {
 	return dots, nil
 }
 
-func (d *DotFilesService) Create(dotFile *DotFile) error {
-	if dotFile == nil {
-		return fmt.Errorf("dotfile cannot be nil")
+func (d *DotFilesService) Create(name string, remoteAddr string, pathPackage string) error {
+	dot, err := NewDotFile(name, remoteAddr, pathPackage)
+
+	if err != nil {
+		return fmt.Errorf("could not create dotfile: %w", err)
 	}
 
-	return d.Store.Add(*dotFile)
+	return d.Store.Add(*dot)
 }
 
-func (d *DotFilesService) Switch(name string, configPath string, backupDir string) error {
-	if strings.TrimSpace(name) == "" {
-		return fmt.Errorf("dotfile name cannot be empty")
+func (d *DotFilesService) Switch(id int, configPath string, backupDir string) error {
+	if id <= 0 {
+		return fmt.Errorf("dotfile name cannot be 0")
 	}
 
 	data, err := d.Store.Load()
@@ -42,14 +44,14 @@ func (d *DotFilesService) Switch(name string, configPath string, backupDir strin
 	var selected *DotFile
 
 	for i := range data {
-		if data[i].Name == name {
+		if data[i].ID == id {
 			selected = &data[i]
 			break
 		}
 	}
 
 	if selected == nil {
-		return fmt.Errorf("could not find dotfiles %q", name)
+		return fmt.Errorf("could not find dotfiles %d", id)
 	}
 
 	targetPath, err := filepath.Abs(selected.LocalPath)
@@ -127,6 +129,19 @@ func (d *DotFilesService) Switch(name string, configPath string, backupDir strin
 		}
 
 		return fmt.Errorf("could not create symlink: %w", err)
+	}
+
+	for i := range data {
+		data[i].InUse = data[i].ID == id
+	}
+
+	if err := d.Store.SaveAll(data); err != nil {
+		if restore != nil {
+			restore()
+		}
+		_ = os.Remove(configPath)
+
+		return fmt.Errorf("could not save dotfiles state: %w", err)
 	}
 
 	return nil

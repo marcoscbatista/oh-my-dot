@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/marcoscbatista/oh-my-dot/internal/dotfiles"
 )
@@ -82,8 +83,13 @@ func main() {
 			os.Exit(1)
 		}
 
-		for i, dot := range dots {
-			fmt.Fprintf(os.Stdout, "%d - %s\n", i+1, dot.Name)
+		for _, dot := range dots {
+			log.Verbosef("%v", dot)
+			if dot.InUse {
+				fmt.Fprintf(os.Stdout, "%d - %s activated\n", dot.ID, dot.Name)
+			} else {
+				fmt.Fprintf(os.Stdout, "%d - %s\n", dot.ID, dot.Name)
+			}
 		}
 
 	case "switch":
@@ -99,16 +105,20 @@ func main() {
 			os.Exit(1)
 		}
 
-		name := switchFlags.Arg(0)
+		id, err := strconv.Atoi(switchFlags.Arg(0))
+		if err != nil {
+			log.Errorf("Error: id must be a number.")
+			os.Exit(1)
+		}
 
-		log.Verbosef("Switching to dotfiles %q", name)
+		log.Verbosef("Switching to dotfiles %q", id)
 
-		if err := handler.Switch(name, *force || *forceShort); err != nil {
+		if err := handler.Switch(id, *force || *forceShort); err != nil {
 			log.Errorf("Error: %s", err)
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stdout, "Dotfiles %q activated successfully.\n", name)
+		fmt.Fprintf(os.Stdout, "Dotfiles %d activated successfully.\n", id)
 
 	case "create":
 		if len(args) < 3 {
@@ -138,6 +148,6 @@ func main() {
 func printUsage() {
 	fmt.Fprintln(os.Stderr, `Commands:
   list                          List all dotfiles
-  switch <name>                 Switch the active dotfiles
+  switch <id>                 Switch the active dotfiles
   create <name> <remote-url>    Add your dotfiles`)
 }

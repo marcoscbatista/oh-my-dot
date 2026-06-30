@@ -14,8 +14,8 @@ type DotFilesHandler struct {
 	ConfigPath  string
 }
 
-func (d *DotFilesHandler) download(dot DotFile, verbose bool) error {
-	cmd := exec.Command("git", "clone", dot.RemoteAddress, dot.LocalPath)
+func (d *DotFilesHandler) download(remoteAddr string, path string, verbose bool) error {
+	cmd := exec.Command("git", "clone", remoteAddr, path)
 	if verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -23,6 +23,7 @@ func (d *DotFilesHandler) download(dot DotFile, verbose bool) error {
 	}
 
 	if err := cmd.Run(); err != nil {
+		_ = os.RemoveAll(path)
 		return err
 	}
 
@@ -52,25 +53,18 @@ func (d *DotFilesHandler) Create(name string, remoteAddr string, verbose bool) e
 
 	pathPackage := filepath.Join(d.DotfilesDir, name)
 
-	dot, err := NewDotFile(name, remoteAddr, pathPackage)
-	if err != nil {
-		return fmt.Errorf("could not create dotfile: %w", err)
-	}
-
-	if err := d.download(*dot, verbose); err != nil {
+	if err := d.download(remoteAddr, pathPackage, verbose); err != nil {
 		return fmt.Errorf("could not download dotfiles: %w", err)
 	}
 
-	if err := d.Service.Create(dot); err != nil {
-		_ = os.RemoveAll(dot.LocalPath)
-
+	if err := d.Service.Create(name, remoteAddr, pathPackage); err != nil {
 		return fmt.Errorf("could not save dotfile: %w", err)
 	}
 
 	return nil
 }
 
-func (d *DotFilesHandler) Switch(name string, force bool) error {
+func (d *DotFilesHandler) Switch(id int, force bool) error {
 	isManaged, err := d.Service.CanReplaceConfig(d.ConfigPath, d.DotfilesDir)
 	if err != nil {
 		return err
@@ -84,13 +78,11 @@ func (d *DotFilesHandler) Switch(name string, force bool) error {
 		)
 	}
 
-	name = strings.TrimSpace(name)
-
-	if name == "" {
-		return fmt.Errorf("name cannot be empty")
+	if id <= 0 {
+		return fmt.Errorf("id cannot be empty")
 	}
 
-	if err := d.Service.Switch(name, d.ConfigPath, d.DotfilesDir); err != nil {
+	if err := d.Service.Switch(id, d.ConfigPath, d.DotfilesDir); err != nil {
 		return fmt.Errorf("could not switch dotfiles: %w", err)
 	}
 
