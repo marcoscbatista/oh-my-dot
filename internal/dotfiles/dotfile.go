@@ -6,19 +6,17 @@ import (
 )
 
 type DotFile struct {
+	ID            int    `json:"id"`
 	Name          string `json:"name"`
 	RemoteAddress string `json:"remote_address"`
 	LocalPath     string `json:"local_path"`
+	InUse         bool   `json:"in_use"`
 }
 
 func NewDotFile(name string, remoteAddr string, localPath string) (*DotFile, error) {
 	name = strings.TrimSpace(name)
 	remoteAddr = strings.TrimSpace(remoteAddr)
 	localPath = strings.TrimSpace(localPath)
-
-	if name == "" {
-		return nil, fmt.Errorf("name cannot be empty")
-	}
 
 	if remoteAddr == "" {
 		return nil, fmt.Errorf("remote address cannot be empty")
@@ -32,6 +30,7 @@ func NewDotFile(name string, remoteAddr string, localPath string) (*DotFile, err
 		Name:          name,
 		RemoteAddress: remoteAddr,
 		LocalPath:     localPath,
+		InUse:         false,
 	}
 
 	return &dot, nil
