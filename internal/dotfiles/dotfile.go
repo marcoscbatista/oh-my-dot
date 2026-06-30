@@ -14,7 +14,13 @@ type DotFile struct {
 }
 
 func NewDotFile(name string, remoteAddr string, localPath string) (*DotFile, error) {
-	name = strings.TrimSpace(name)
+	var err error
+
+	name, err = normalizePackageName(name)
+	if err != nil {
+		return nil, err
+	}
+
 	remoteAddr = strings.TrimSpace(remoteAddr)
 	localPath = strings.TrimSpace(localPath)
 

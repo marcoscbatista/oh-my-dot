@@ -40,7 +40,7 @@ func main() {
 
 	log.Verbosef("Using home directory: %s", home)
 
-	store, err := dotfiles.NewDotFileStore("oh-my-dot/db.json")
+	store, err := dotfiles.NewDotFileStore(dotfiles.DefaultStorePath())
 	if err != nil {
 		log.Errorf("Error: %s", err)
 		os.Exit(1)
@@ -54,8 +54,8 @@ func main() {
 
 	handler := dotfiles.DotFilesHandler{
 		Service:     &service,
-		DotfilesDir: filepath.Join(home, "oh-my-dot"),
-		ConfigPath:  filepath.Join(home, ".fake-config"),
+		DotfilesDir: dotfiles.DefaultDotfilesDir(home),
+		ConfigPath:  dotfiles.DefaultConfigPath(home),
 	}
 
 	log.Verbosef("Using dotfiles directory: %s", handler.DotfilesDir)

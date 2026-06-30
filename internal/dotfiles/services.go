@@ -31,9 +31,33 @@ func (d *DotFilesService) Create(name string, remoteAddr string, pathPackage str
 	return d.Store.Add(*dot)
 }
 
+func (d *DotFilesService) ValidateCreate(name string, remoteAddr string, pathPackage string) error {
+	dot, err := NewDotFile(name, remoteAddr, pathPackage)
+	if err != nil {
+		return fmt.Errorf("could not create dotfile: %w", err)
+	}
+
+	dotfiles, err := d.Store.Load()
+	if err != nil {
+		return err
+	}
+
+	for _, existing := range dotfiles {
+		if existing.Name == dot.Name {
+			return fmt.Errorf("dotfile %q already exists", dot.Name)
+		}
+
+		if existing.LocalPath == dot.LocalPath {
+			return fmt.Errorf("dotfile path %q already exists", dot.LocalPath)
+		}
+	}
+
+	return nil
+}
+
 func (d *DotFilesService) Switch(id int, configPath string, backupDir string) error {
 	if id <= 0 {
-		return fmt.Errorf("dotfile name cannot be 0")
+		return fmt.Errorf("dotfile id must be greater than 0")
 	}
 
 	data, err := d.Store.Load()
